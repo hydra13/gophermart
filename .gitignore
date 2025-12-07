@@ -21,3 +21,9 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+
+# Operating system
+.DS_Store
+
+storage.json
+.db/
