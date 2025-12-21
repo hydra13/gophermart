@@ -24,6 +24,11 @@ import (
 	registerHandler "github.com/hydra13/gophermart/internal/handlers/register"
 	withdrawHandler "github.com/hydra13/gophermart/internal/handlers/withdraw"
 	withdrawalsHandler "github.com/hydra13/gophermart/internal/handlers/withdrawals"
+	authMiddleware "github.com/hydra13/gophermart/internal/middlewares/auth"
+
+	// "github.com/hydra13/gophermart/internal/middlewares/compresser"
+	// "github.com/hydra13/gophermart/internal/middlewares/logger"
+	authService "github.com/hydra13/gophermart/internal/services/auth"
 )
 
 const dbDriver = "pgx"
@@ -48,6 +53,12 @@ func main() {
 		log.Fatal().Err(err).Msg("❌ Failed to run migrations")
 	}
 
+	// Services
+	auth := authService.New()
+
+	//Middlewares
+	authMiddleware := authMiddleware.NewAuthMiddleware(auth, log)
+
 	// Handlers
 	getBalanceHandler := balanceHandler.NewHandler(log)
 	getOrdersByUserHandler := getOrdersHandler.NewHandler(log)
@@ -63,13 +74,17 @@ func main() {
 	r.Route("/api/user", func(r chi.Router) {
 		r.Post("/register", registerHandler.Handle)
 		r.Post("/login", loginHandler.Handle)
-		r.Post("/orders", loadOrdersByUserHandler.Handle)
-		r.Get("/orders", getOrdersByUserHandler.Handle)
+		r.Route("/orders", func(r chi.Router) {
+			r.Use(authMiddleware)
+			r.Post("/", loadOrdersByUserHandler.Handle)
+			r.Get("/", getOrdersByUserHandler.Handle)
+		})
 		r.Route("/balance", func(r chi.Router) {
+			r.Use(authMiddleware)
 			r.Get("/", getBalanceHandler.Handle)
 			r.Post("/withdraw", withdrawHandler.Handle)
 		})
-		r.Get("/withdrawals", withdrawalsHandler.Handle)
+		r.With(authMiddleware).Get("/withdrawals", withdrawalsHandler.Handle)
 	})
 
 	srv := &http.Server{
