@@ -25,9 +25,8 @@ import (
 	withdrawHandler "github.com/hydra13/gophermart/internal/handlers/withdraw"
 	withdrawalsHandler "github.com/hydra13/gophermart/internal/handlers/withdrawals"
 	authMiddleware "github.com/hydra13/gophermart/internal/middlewares/auth"
-
-	// "github.com/hydra13/gophermart/internal/middlewares/compresser"
-	// "github.com/hydra13/gophermart/internal/middlewares/logger"
+	"github.com/hydra13/gophermart/internal/middlewares/compresser"
+	"github.com/hydra13/gophermart/internal/middlewares/logger"
 	authService "github.com/hydra13/gophermart/internal/services/auth"
 )
 
@@ -70,6 +69,9 @@ func main() {
 
 	// Routing
 	r := chi.NewRouter()
+
+	r.Use(compresser.CompresserMiddleware)
+	r.Use(logger.NewLoggerMiddleware(log))
 
 	r.Route("/api/user", func(r chi.Router) {
 		r.Post("/register", registerHandler.Handle)
