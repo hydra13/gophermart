@@ -25,5 +25,4 @@ vendor/
 # Operating system
 .DS_Store
 
-storage.json
 .db/

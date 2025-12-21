@@ -15,7 +15,7 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		RunAddress:           ":8081",
-		DatabaseURI:          "postgres://localhost/gophermart?sslmode=disable",
+		DatabaseURI:          "postgresql://postgres:postgres@localhost:5432/gophermart_data?sslmode=disable",
 		AccrualSystemAddress: "http://localhost:8080",
 	}
 }
