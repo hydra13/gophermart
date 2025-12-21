@@ -1,5 +1,11 @@
 package models
 
+import "errors"
+
+var (
+	ErrUserAlreadyExists = errors.New("user already exists")
+)
+
 type User struct {
 	ID           int64  `db:"user_id"`
 	Login        string `db:"login"`
