@@ -39,6 +39,15 @@ func NewHandler(u UserService, a AuthService, log zerolog.Logger) *Handler {
 }
 
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != "application/json" {
+		h.log.Debug().
+			Str("content-type", r.Header.Get("Content-Type")).
+			Msg("register: error by content-type")
+
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	var req JSONRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {

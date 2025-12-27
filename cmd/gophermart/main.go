@@ -28,6 +28,8 @@ import (
 	"github.com/hydra13/gophermart/internal/middlewares/compresser"
 	"github.com/hydra13/gophermart/internal/middlewares/logger"
 	authService "github.com/hydra13/gophermart/internal/services/auth"
+	userService "github.com/hydra13/gophermart/internal/services/user"
+	userRepository "github.com/hydra13/gophermart/internal/repositories/user"
 )
 
 const dbDriver = "pgx"
@@ -54,6 +56,8 @@ func main() {
 
 	// Services
 	auth := authService.New()
+	userRepo := userRepository.NewUserRepository(dbInstance)
+	user := userService.NewUserService(userRepo)
 
 	//Middlewares
 	authMiddleware := authMiddleware.NewAuthMiddleware(auth, log)
@@ -62,8 +66,8 @@ func main() {
 	getBalanceHandler := balanceHandler.NewHandler(log)
 	getOrdersByUserHandler := getOrdersHandler.NewHandler(log)
 	loadOrdersByUserHandler := loadOrdersHandler.NewHandler(log)
-	loginHandler := loginHandler.NewHandler(log)
-	registerHandler := registerHandler.NewHandler(log)
+	loginHandler := loginHandler.NewHandler(user, auth, log)
+	registerHandler := registerHandler.NewHandler(user, auth, log)
 	withdrawHandler := withdrawHandler.NewHandler(log)
 	withdrawalsHandler := withdrawalsHandler.NewHandler(log)
 
