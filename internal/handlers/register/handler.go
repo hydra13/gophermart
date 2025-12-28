@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/hydra13/gophermart/internal/models"
+	"github.com/hydra13/gophermart/internal/validators"
 )
 
 type JSONRequest struct {
@@ -59,6 +60,16 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !validators.IsValidEmail(req.Login) || !validators.IsValidPass(req.Password) {
+		h.log.Debug().
+			Str("login", req.Login).
+			Str("password", req.Password).
+			Msg("register: error validate login or password")
+
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	userID, err := h.u.Register(r.Context(), req.Login, req.Password)
 
 	if err != nil {
@@ -66,6 +77,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 			h.log.Debug().
 				Err(err).
 				Msg("register: user already exists")
+
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
@@ -73,6 +85,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		h.log.Error().
 			Err(err).
 			Msg("register: error register user")
+
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

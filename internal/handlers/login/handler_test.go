@@ -34,12 +34,12 @@ func TestHandler_Handle(t *testing.T) {
 			name: "success",
 			request: request{
 				contentType: "application/json",
-				body:        `{"login":"testuser","password":"testpass"}`,
+				body:        `{"login":"testuser@email.com","password":"testPass123"}`,
 			},
 			userService: func(mc *minimock.Controller) *mocks.UserServiceMock {
 				return mocks.NewUserServiceMock(mc).
 					LoginMock.
-					Expect(context.Background(), "testuser", "testpass").
+					Expect(context.Background(), "testuser@email.com", "testPass123").
 					Return(int64(1234567890), nil)
 			},
 			authService: func(mc *minimock.Controller) *mocks.AuthServiceMock {
@@ -54,7 +54,7 @@ func TestHandler_Handle(t *testing.T) {
 			name: "invalid content-type",
 			request: request{
 				contentType: "text/html",
-				body:        `{"login":"testuser","password":"testpass"}`,
+				body:        `{"login":"testuser@email.com","password":"testPass123"}`,
 			},
 			userService: func(mc *minimock.Controller) *mocks.UserServiceMock {
 				return mocks.NewUserServiceMock(mc)
@@ -68,7 +68,35 @@ func TestHandler_Handle(t *testing.T) {
 			name: "invalid json",
 			request: request{
 				contentType: "application/json",
-				body:        `{"login":"testuser","password":"testpass"`,
+				body:        `{"login":"testuser@email.com","password":"testPass123"`,
+			},
+			userService: func(mc *minimock.Controller) *mocks.UserServiceMock {
+				return mocks.NewUserServiceMock(mc)
+			},
+			authService: func(mc *minimock.Controller) *mocks.AuthServiceMock {
+				return mocks.NewAuthServiceMock(mc)
+			},
+			expected: http.StatusBadRequest,
+		},
+		{
+			name: "invalid login",
+			request: request{
+				contentType: "application/json",
+				body:        `{"login":"testuser","password":"testPass123"`,
+			},
+			userService: func(mc *minimock.Controller) *mocks.UserServiceMock {
+				return mocks.NewUserServiceMock(mc)
+			},
+			authService: func(mc *minimock.Controller) *mocks.AuthServiceMock {
+				return mocks.NewAuthServiceMock(mc)
+			},
+			expected: http.StatusBadRequest,
+		},
+		{
+			name: "invalid password",
+			request: request{
+				contentType: "application/json",
+				body:        `{"login":"testuser@email.com","password":"testpass"`,
 			},
 			userService: func(mc *minimock.Controller) *mocks.UserServiceMock {
 				return mocks.NewUserServiceMock(mc)
@@ -96,12 +124,12 @@ func TestHandler_Handle(t *testing.T) {
 			name: "user not found",
 			request: request{
 				contentType: "application/json",
-				body:        `{"login":"nonexistentuser","password":"testpass"}`,
+				body:        `{"login":"nonexistentuser@email.com","password":"testPass123"}`,
 			},
 			userService: func(mc *minimock.Controller) *mocks.UserServiceMock {
 				return mocks.NewUserServiceMock(mc).
 					LoginMock.
-					Expect(context.Background(), "nonexistentuser", "testpass").
+					Expect(context.Background(), "nonexistentuser@email.com", "testPass123").
 					Return(int64(0), models.ErrUserNotFound)
 			},
 			authService: func(mc *minimock.Controller) *mocks.AuthServiceMock {
@@ -113,12 +141,12 @@ func TestHandler_Handle(t *testing.T) {
 			name: "internal server error",
 			request: request{
 				contentType: "application/json",
-				body:        `{"login":"newuser","password":"testpass"}`,
+				body:        `{"login":"newuser@email.com","password":"testPass123"}`,
 			},
 			userService: func(mc *minimock.Controller) *mocks.UserServiceMock {
 				return mocks.NewUserServiceMock(mc).
 					LoginMock.
-					Expect(context.Background(), "newuser", "testpass").
+					Expect(context.Background(), "newuser@email.com", "testPass123").
 					Return(int64(0), errors.New("database error"))
 			},
 			authService: func(mc *minimock.Controller) *mocks.AuthServiceMock {
@@ -130,6 +158,8 @@ func TestHandler_Handle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mc := minimock.NewController(t)
 			defer mc.Wait(time.Second)
 

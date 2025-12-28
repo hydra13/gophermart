@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/hydra13/gophermart/internal/models"
+	"github.com/hydra13/gophermart/internal/validators"
 )
 
 type JSONRequest struct {
@@ -54,6 +55,16 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		h.log.Debug().
 			Err(err).
 			Msg("login: error read request body")
+
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if !validators.IsValidEmail(req.Login) || !validators.IsValidPass(req.Password) {
+		h.log.Debug().
+			Str("login", req.Login).
+			Str("password", req.Password).
+			Msg("login: error by login or password")
 
 		w.WriteHeader(http.StatusBadRequest)
 		return
