@@ -9,17 +9,17 @@ import (
 func TestIsValidLuhn(t *testing.T) {
 	tests := []struct {
 		name  string
-		input int64
+		input string
 		want  bool
 	}{
 		{
 			name:  "success",
-			input: 4440,
+			input: "4440",
 			want:  true,
 		},
 		{
 			name:  "not valid",
-			input: 4444,
+			input: "4444",
 			want:  false,
 		},
 	}

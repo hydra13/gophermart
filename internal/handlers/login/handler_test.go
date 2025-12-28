@@ -2,12 +2,10 @@ package loginhandler
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/rs/zerolog"
@@ -39,7 +37,7 @@ func TestHandler_Handle(t *testing.T) {
 			userService: func(mc *minimock.Controller) *mocks.UserServiceMock {
 				return mocks.NewUserServiceMock(mc).
 					LoginMock.
-					Expect(context.Background(), "testuser@email.com", "testPass123").
+					Expect(minimock.AnyContext, "testuser@email.com", "testPass123").
 					Return(int64(1234567890), nil)
 			},
 			authService: func(mc *minimock.Controller) *mocks.AuthServiceMock {
@@ -129,7 +127,7 @@ func TestHandler_Handle(t *testing.T) {
 			userService: func(mc *minimock.Controller) *mocks.UserServiceMock {
 				return mocks.NewUserServiceMock(mc).
 					LoginMock.
-					Expect(context.Background(), "nonexistentuser@email.com", "testPass123").
+					Expect(minimock.AnyContext, "nonexistentuser@email.com", "testPass123").
 					Return(int64(0), models.ErrUserNotFound)
 			},
 			authService: func(mc *minimock.Controller) *mocks.AuthServiceMock {
@@ -146,7 +144,7 @@ func TestHandler_Handle(t *testing.T) {
 			userService: func(mc *minimock.Controller) *mocks.UserServiceMock {
 				return mocks.NewUserServiceMock(mc).
 					LoginMock.
-					Expect(context.Background(), "newuser@email.com", "testPass123").
+					Expect(minimock.AnyContext, "newuser@email.com", "testPass123").
 					Return(int64(0), errors.New("database error"))
 			},
 			authService: func(mc *minimock.Controller) *mocks.AuthServiceMock {
@@ -161,7 +159,6 @@ func TestHandler_Handle(t *testing.T) {
 			t.Parallel()
 
 			mc := minimock.NewController(t)
-			defer mc.Wait(time.Second)
 
 			handler := NewHandler(
 				tt.userService(mc),

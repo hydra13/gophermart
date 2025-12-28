@@ -17,9 +17,9 @@ import (
 	glog "go.finelli.dev/gooseloggers/zerolog"
 
 	"github.com/hydra13/gophermart/internal/config"
+	addOrderHandler "github.com/hydra13/gophermart/internal/handlers/add_order"
 	balanceHandler "github.com/hydra13/gophermart/internal/handlers/balance"
 	getOrdersHandler "github.com/hydra13/gophermart/internal/handlers/get_orders"
-	loadOrdersHandler "github.com/hydra13/gophermart/internal/handlers/load_orders"
 	loginHandler "github.com/hydra13/gophermart/internal/handlers/login"
 	registerHandler "github.com/hydra13/gophermart/internal/handlers/register"
 	withdrawHandler "github.com/hydra13/gophermart/internal/handlers/withdraw"
@@ -27,9 +27,11 @@ import (
 	authMiddleware "github.com/hydra13/gophermart/internal/middlewares/auth"
 	"github.com/hydra13/gophermart/internal/middlewares/compresser"
 	"github.com/hydra13/gophermart/internal/middlewares/logger"
-	authService "github.com/hydra13/gophermart/internal/services/auth"
-	userService "github.com/hydra13/gophermart/internal/services/user"
+	orderRepository "github.com/hydra13/gophermart/internal/repositories/order"
 	userRepository "github.com/hydra13/gophermart/internal/repositories/user"
+	authService "github.com/hydra13/gophermart/internal/services/auth"
+	orderService "github.com/hydra13/gophermart/internal/services/order"
+	userService "github.com/hydra13/gophermart/internal/services/user"
 )
 
 const dbDriver = "pgx"
@@ -57,7 +59,9 @@ func main() {
 	// Services
 	auth := authService.New()
 	userRepo := userRepository.NewUserRepository(dbInstance)
+	orderRepo := orderRepository.NewOrderRepository(dbInstance)
 	user := userService.NewUserService(userRepo)
+	order := orderService.NewOrderService(orderRepo)
 
 	//Middlewares
 	authMiddleware := authMiddleware.NewAuthMiddleware(auth, log)
@@ -65,7 +69,7 @@ func main() {
 	// Handlers
 	getBalanceHandler := balanceHandler.NewHandler(log)
 	getOrdersByUserHandler := getOrdersHandler.NewHandler(log)
-	loadOrdersByUserHandler := loadOrdersHandler.NewHandler(log)
+	addOrderByUserHandler := addOrderHandler.NewHandler(order, log)
 	loginHandler := loginHandler.NewHandler(user, auth, log)
 	registerHandler := registerHandler.NewHandler(user, auth, log)
 	withdrawHandler := withdrawHandler.NewHandler(log)
@@ -82,7 +86,7 @@ func main() {
 		r.Post("/login", loginHandler.Handle)
 		r.Route("/orders", func(r chi.Router) {
 			r.Use(authMiddleware)
-			r.Post("/", loadOrdersByUserHandler.Handle)
+			r.Post("/", addOrderByUserHandler.Handle)
 			r.Get("/", getOrdersByUserHandler.Handle)
 		})
 		r.Route("/balance", func(r chi.Router) {

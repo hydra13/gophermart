@@ -10,4 +10,5 @@ var (
 	ErrTokenNotFound      = errors.New("token not found error")
 	ErrURLIsDeleted       = errors.New("url is deleted error")
 	ErrOperationForbidden = errors.New("operation forbidden error")
+	ErrOrderAlreadyExists = errors.New("order already exists error")
 )

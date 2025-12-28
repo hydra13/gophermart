@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -27,7 +26,6 @@ func New() *AuthService {
 }
 
 func (a *AuthService) GetUser(r *http.Request) (userID int64, err error) {
-	fmt.Println("cookie", r.Cookies())
 	cookie, err := r.Cookie(cookieKey)
 	if err != nil {
 		return -1, models.ErrTokenNotFound

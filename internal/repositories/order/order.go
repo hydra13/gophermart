@@ -13,6 +13,7 @@ import (
 var (
 	ErrOrderExists   = errors.New("order already exists")
 	ErrOrderNotFound = errors.New("order not found")
+	ErrConflict      = errors.New("conflict")
 )
 
 type OrderRepository struct {
@@ -40,6 +41,50 @@ func (r *OrderRepository) Create(ctx context.Context, number string, userID int6
 		return ErrOrderExists
 	}
 	return nil
+}
+
+func (r *OrderRepository) CheckAndCreate(ctx context.Context, number string, userID int64) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var userIDFromDB int64
+
+	query := `SELECT user_id FROM orders WHERE number = $1 LIMIT 1`
+	err = tx.GetContext(ctx, &userIDFromDB, query, number)
+	if err != sql.ErrNoRows && err != nil {
+		return err
+	}
+
+	if err != sql.ErrNoRows {
+		if userID != userIDFromDB {
+			return ErrConflict
+		}
+
+		return ErrOrderExists
+	}
+
+	query = `
+		INSERT INTO orders (number, user_id) VALUES ($1, $2)
+		ON CONFLICT (number) DO NOTHING
+	`
+	result, err := tx.ExecContext(ctx, query, number, userID)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return ErrOrderExists
+	}
+
+	return tx.Commit()
 }
 
 func (r *OrderRepository) GetByUserID(ctx context.Context, userID int64) ([]models.Order, error) {

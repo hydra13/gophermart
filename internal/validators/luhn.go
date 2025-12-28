@@ -4,14 +4,13 @@ import (
 	"strconv"
 )
 
-func IsValidLuhn(number int64) bool {
-	s := strconv.FormatInt(number, 10)
-	nDigits := len(s)
+func IsValidLuhn(number string) bool {
+	nDigits := len(number)
 	sum := 0
 	isSecond := false
 
 	for i := nDigits - 1; i >= 0; i-- {
-		digit, err := strconv.Atoi(string(s[i]))
+		digit, err := strconv.Atoi(string(number[i]))
 		if err != nil {
 			return false
 		}
