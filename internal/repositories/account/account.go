@@ -76,3 +76,30 @@ func (r *AccountRepository) UpdateTx(ctx context.Context, tx *sqlx.Tx, userID in
 	}
 	return nil
 }
+
+func (r *AccountRepository) Withdraw(ctx context.Context, userID int64, amount int64) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	queryUpdate := `
+		UPDATE accounts
+		SET current = current - $1, withdrawn = withdrawn + $1
+		WHERE user_id = $2 AND current >= $1
+	`
+	result, err := tx.ExecContext(ctx, queryUpdate, amount, userID)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return repositories.ErrNotEnoughMoney
+	}
+
+	return tx.Commit()
+}

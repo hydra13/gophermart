@@ -10,4 +10,5 @@ var (
 	ErrConflict        = errors.New("conflict")
 	ErrLoginExists     = errors.New("user with this login already exists")
 	ErrUserNotFound    = errors.New("user not found")
+	ErrNotEnoughMoney  = errors.New("not enough money on the account")
 )

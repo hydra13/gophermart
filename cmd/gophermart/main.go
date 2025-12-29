@@ -89,7 +89,7 @@ func main() {
 	addOrderByUserHandler := addOrderHandler.NewHandler(order, log)
 	loginHandler := loginHandler.NewHandler(user, auth, log)
 	registerHandler := registerHandler.NewHandler(user, auth, log)
-	withdrawHandler := withdrawHandler.NewHandler(log)
+	withdrawHandler := withdrawHandler.NewHandler(account, log)
 	withdrawalsHandler := withdrawalsHandler.NewHandler(log)
 
 	// Routing
