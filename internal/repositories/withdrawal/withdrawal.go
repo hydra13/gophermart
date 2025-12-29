@@ -16,6 +16,15 @@ func NewWithdrawalRepository(db *sqlx.DB) *WithdrawalRepository {
 	return &WithdrawalRepository{db: db}
 }
 
+func (r *WithdrawalRepository) AddTx(ctx context.Context, tx *sqlx.Tx, withdrawal models.Withdrawal) error {
+	query := `
+		INSERT INTO withdrawals (user_id, order_number, sum)
+		VALUES ($1, $2, $3)
+	`
+	_, err := tx.ExecContext(ctx, query, withdrawal.UserID, withdrawal.OrderNumber, withdrawal.Sum)
+	return err
+}
+
 func (r *WithdrawalRepository) Create(ctx context.Context, userID int64, orderNumber string, sum int64) error {
 	query := `
 		INSERT INTO withdrawals (user_id, order_number, sum)

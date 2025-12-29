@@ -32,10 +32,12 @@ import (
 	accountRepository "github.com/hydra13/gophermart/internal/repositories/account"
 	orderRepository "github.com/hydra13/gophermart/internal/repositories/order"
 	userRepository "github.com/hydra13/gophermart/internal/repositories/user"
+	withdrawalRepository "github.com/hydra13/gophermart/internal/repositories/withdrawal"
 	accountService "github.com/hydra13/gophermart/internal/services/account"
 	authService "github.com/hydra13/gophermart/internal/services/auth"
 	orderService "github.com/hydra13/gophermart/internal/services/order"
 	userService "github.com/hydra13/gophermart/internal/services/user"
+	withdrawalService "github.com/hydra13/gophermart/internal/services/withdrawal"
 	"github.com/hydra13/gophermart/internal/services/worker"
 )
 
@@ -69,15 +71,18 @@ func main() {
 	accountRepo := accountRepository.NewAccountRepository(dbInstance)
 	userRepo := userRepository.NewUserRepository(dbInstance)
 	orderRepo := orderRepository.NewOrderRepository(dbInstance)
+	withdrawalRepo := withdrawalRepository.NewWithdrawalRepository(dbInstance)
 	txRepo := txRepository.NewTransactionRepository(
 		dbInstance,
 		orderRepo,
 		accountRepo,
 		userRepo,
+		withdrawalRepo,
 	)
-	account := accountService.NewAccountService(accountRepo)
+	account := accountService.NewAccountService(accountRepo, txRepo)
 	user := userService.NewUserService(userRepo, txRepo)
 	order := orderService.NewOrderService(orderRepo, txRepo)
+	withdrawals := withdrawalService.NewWithdrawalService(withdrawalRepo)
 	w := worker.NewWorker(accrual, order, log)
 
 	//Middlewares
@@ -90,7 +95,7 @@ func main() {
 	loginHandler := loginHandler.NewHandler(user, auth, log)
 	registerHandler := registerHandler.NewHandler(user, auth, log)
 	withdrawHandler := withdrawHandler.NewHandler(account, log)
-	withdrawalsHandler := withdrawalsHandler.NewHandler(log)
+	withdrawalsHandler := withdrawalsHandler.NewHandler(withdrawals, log)
 
 	// Routing
 	r := chi.NewRouter()

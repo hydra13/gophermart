@@ -9,16 +9,24 @@ import (
 
 type AccountRepository interface {
 	Get(ctx context.Context, userID int64) (models.Account, error)
-	Withdraw(ctx context.Context, userID int64, amount int64) error
+}
+
+type TransactionRepository interface {
+	Withdraw(ctx context.Context, withdrawal models.Withdrawal) error
 }
 
 type AccountService struct {
-	accountRepository AccountRepository
+	accountRepository     AccountRepository
+	transactionRepository TransactionRepository
 }
 
-func NewAccountService(accountRepository AccountRepository) *AccountService {
+func NewAccountService(
+	accountRepository AccountRepository,
+	transactionRepository TransactionRepository,
+) *AccountService {
 	return &AccountService{
-		accountRepository: accountRepository,
+		accountRepository:     accountRepository,
+		transactionRepository: transactionRepository,
 	}
 }
 
@@ -27,9 +35,9 @@ func (s *AccountService) GetAccount(ctx context.Context, userID int64) (models.A
 	return s.accountRepository.Get(ctx, userID)
 }
 
-func (s *AccountService) Withdraw(ctx context.Context, userID int64, amount int64) error {
+func (s *AccountService) Withdraw(ctx context.Context, withdrawal models.Withdrawal) error {
 	// TODO: надо мапить на ошибки сервисного слоя а не прокидывать ошибки репозитория
-	err := s.accountRepository.Withdraw(ctx, userID, amount)
+	err := s.transactionRepository.Withdraw(ctx, withdrawal)
 
 	if err == repositories.ErrNotEnoughMoney {
 		return models.ErrNotEnoughMoney

@@ -19,7 +19,7 @@ type JSONRequest struct {
 }
 
 type AccountService interface {
-	Withdraw(ctx context.Context, userID int64, amount int64) error
+	Withdraw(ctx context.Context, withdrawal models.Withdrawal) error
 }
 
 type Handler struct {
@@ -78,7 +78,11 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.accountService.Withdraw(r.Context(), userID, sum)
+	err = h.accountService.Withdraw(r.Context(), models.Withdrawal{
+		OrderNumber: req.Order,
+		Sum:         sum,
+		UserID:      userID,
+	})
 	if err == models.ErrNotEnoughMoney {
 		h.log.Debug().
 			Err(err).

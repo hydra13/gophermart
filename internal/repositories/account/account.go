@@ -78,12 +78,27 @@ func (r *AccountRepository) UpdateTx(ctx context.Context, tx *sqlx.Tx, userID in
 }
 
 func (r *AccountRepository) Withdraw(ctx context.Context, userID int64, amount int64) error {
-	tx, err := r.db.BeginTxx(ctx, nil)
+	queryUpdate := `
+		UPDATE accounts
+		SET current = current - $1, withdrawn = withdrawn + $1
+		WHERE user_id = $2 AND current >= $1
+	`
+	result, err := r.db.ExecContext(ctx, queryUpdate, amount, userID)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return repositories.ErrNotEnoughMoney
+	}
 
+	return nil
+}
+
+func (r *AccountRepository) WithdrawTx(ctx context.Context, tx *sqlx.Tx, userID int64, amount int64) error {
 	queryUpdate := `
 		UPDATE accounts
 		SET current = current - $1, withdrawn = withdrawn + $1
@@ -101,5 +116,5 @@ func (r *AccountRepository) Withdraw(ctx context.Context, userID int64, amount i
 		return repositories.ErrNotEnoughMoney
 	}
 
-	return tx.Commit()
+	return nil
 }

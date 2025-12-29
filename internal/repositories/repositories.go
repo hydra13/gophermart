@@ -14,17 +14,23 @@ type OrderRepository interface {
 type AccountRepository interface {
 	CreateTx(ctx context.Context, tx *sqlx.Tx, userID int64) error
 	UpdateTx(ctx context.Context, tx *sqlx.Tx, userID int64, accrual, withdrawal int64) error
+	WithdrawTx(ctx context.Context, tx *sqlx.Tx, userID int64, amount int64) error
 }
 
 type UserRepository interface {
 	CreateTx(ctx context.Context, tx *sqlx.Tx, user models.User) (int64, error)
 }
 
+type WithdrawalRepository interface {
+	AddTx(ctx context.Context, tx *sqlx.Tx, withdrawal models.Withdrawal) error
+}
+
 type TransactionRepository struct {
-	db          *sqlx.DB
-	orderRepo   OrderRepository
-	accountRepo AccountRepository
-	userRepo    UserRepository
+	db             *sqlx.DB
+	orderRepo      OrderRepository
+	accountRepo    AccountRepository
+	userRepo       UserRepository
+	withdrawalRepo WithdrawalRepository
 }
 
 func NewTransactionRepository(
@@ -32,12 +38,14 @@ func NewTransactionRepository(
 	orderRepo OrderRepository,
 	accountRepo AccountRepository,
 	userRepo UserRepository,
+	withdrawalRepo WithdrawalRepository,
 ) *TransactionRepository {
 	return &TransactionRepository{
-		db:          db,
-		orderRepo:   orderRepo,
-		accountRepo: accountRepo,
-		userRepo:    userRepo,
+		db:             db,
+		orderRepo:      orderRepo,
+		accountRepo:    accountRepo,
+		userRepo:       userRepo,
+		withdrawalRepo: withdrawalRepo,
 	}
 }
 
@@ -85,4 +93,27 @@ func (r *TransactionRepository) CreateUser(
 	}
 
 	return userID, tx.Commit()
+}
+
+func (r *TransactionRepository) Withdraw(
+	ctx context.Context,
+	withdrawal models.Withdrawal,
+) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = r.accountRepo.WithdrawTx(ctx, tx, withdrawal.UserID, withdrawal.Sum)
+	if err != nil {
+		return err
+	}
+
+	err = r.withdrawalRepo.AddTx(ctx, tx, withdrawal)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
