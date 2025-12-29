@@ -16,6 +16,7 @@ import (
 	"github.com/rs/zerolog"
 	glog "go.finelli.dev/gooseloggers/zerolog"
 
+	accrualClient "github.com/hydra13/gophermart/internal/clients/accrual"
 	"github.com/hydra13/gophermart/internal/config"
 	addOrderHandler "github.com/hydra13/gophermart/internal/handlers/add_order"
 	balanceHandler "github.com/hydra13/gophermart/internal/handlers/balance"
@@ -32,6 +33,7 @@ import (
 	authService "github.com/hydra13/gophermart/internal/services/auth"
 	orderService "github.com/hydra13/gophermart/internal/services/order"
 	userService "github.com/hydra13/gophermart/internal/services/user"
+	"github.com/hydra13/gophermart/internal/services/worker"
 )
 
 const dbDriver = "pgx"
@@ -56,12 +58,16 @@ func main() {
 		log.Fatal().Err(err).Msg("❌ Failed to run migrations")
 	}
 
+	// Clients
+	accrual := accrualClient.New(conf.AccrualSystemAddress)
+
 	// Services
 	auth := authService.New()
 	userRepo := userRepository.NewUserRepository(dbInstance)
 	orderRepo := orderRepository.NewOrderRepository(dbInstance)
 	user := userService.NewUserService(userRepo)
 	order := orderService.NewOrderService(orderRepo)
+	w := worker.NewWorker(accrual, order, log)
 
 	//Middlewares
 	authMiddleware := authMiddleware.NewAuthMiddleware(auth, log)
@@ -113,9 +119,24 @@ func main() {
 		}
 	}()
 
+	ctxWorker, cancelWorker := context.WithCancel(context.Background())
+	go func() {
+		log.Debug().Msg("⏰ Starting background worker")
+
+		err := w.Run(ctxWorker)
+		if err != nil {
+			log.Error().Err(err).Msg("🟥 Worker failed")
+		}
+
+		log.Info().Msg("⬜ Worker exited")
+	}()
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+
+	log.Info().Msg("⏳ Shutting down worker...")
+	cancelWorker()
 
 	log.Info().Msg("⏳ Shutting down server...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

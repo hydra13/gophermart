@@ -1,6 +1,21 @@
 package models
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+const (
+	OrderStatusNew        = "NEW"
+	OrderStatusProcessing = "PROCESSING"
+	OrderStatusInvalid    = "INVALID"
+	OrderStatusProcessed  = "PROCESSED"
+)
+
+var (
+	ErrOrderNotFound      = errors.New("order not found")
+	ErrOrderAlreadyExists = errors.New("order already exists error")
+)
 
 type Order struct {
 	Number     string    `db:"number"`

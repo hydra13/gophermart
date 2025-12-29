@@ -131,3 +131,10 @@ func (r *OrderRepository) UpdateStatus(ctx context.Context, number string, statu
 	}
 	return nil
 }
+
+func (r *OrderRepository) GetProcessingOrders(ctx context.Context) ([]string, error) {
+	var numbers []string
+	query := `SELECT number FROM orders WHERE status = 'PROCESSING'`
+	err := r.db.SelectContext(ctx, &numbers, query)
+	return numbers, err
+}

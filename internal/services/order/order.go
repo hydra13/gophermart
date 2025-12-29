@@ -26,6 +26,32 @@ func (s *OrderService) AddOrder(ctx context.Context, orderNumber string, userID 
 	}
 
 	if err != nil {
+		// TODO: надо мапить на ошибки сервисного слоя а не прокидывать ошибки репозитория
+		return err
+	}
+
+	return nil
+}
+
+func (s *OrderService) GetOrdersForCheckingStatus(ctx context.Context) ([]string, error) {
+	orders, err := s.repo.GetProcessingOrders(ctx)
+	if err != nil {
+		// TODO: надо мапить на ошибки сервисного слоя а не прокидывать ошибки репозитория
+		return nil, err
+	}
+
+	return orders, nil
+}
+
+func (s *OrderService) UpdateOrder(
+	ctx context.Context,
+	orderNumber string,
+	status string,
+	accrual int64,
+) error {
+	err := s.repo.UpdateStatus(ctx, orderNumber, status, accrual)
+	if err != nil {
+		// TODO: надо мапить на ошибки сервисного слоя а не прокидывать ошибки репозитория
 		return err
 	}
 
