@@ -25,7 +25,7 @@ func TestIsValidWithdrawAmount(t *testing.T) {
 		},
 		{
 			name:  "invalid amount",
-			input: 1_000_001,
+			input: 1_000_001_00,
 			want:  false,
 		},
 		{
