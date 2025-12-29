@@ -139,9 +139,35 @@ func (r *OrderRepository) UpdateStatus(ctx context.Context, number string, statu
 	return nil
 }
 
-func (r *OrderRepository) GetProcessingOrders(ctx context.Context) ([]string, error) {
-	var numbers []string
-	query := `SELECT number FROM orders WHERE status = 'PROCESSING'`
-	err := r.db.SelectContext(ctx, &numbers, query)
-	return numbers, err
+func (r *OrderRepository) UpdateTx(
+	ctx context.Context,
+	tx *sqlx.Tx,
+	number string,
+	status string,
+	accrual int64,
+) error {
+	query := `
+		UPDATE orders
+		SET status = $1, accrual = $2
+		WHERE number = $3
+	`
+	result, err := tx.ExecContext(ctx, query, status, accrual, number)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrOrderNotFound
+	}
+	return nil
+}
+
+func (r *OrderRepository) GetProcessingOrders(ctx context.Context) ([]models.Order, error) {
+	var orders []models.Order
+	query := `SELECT number, user_id FROM orders WHERE status = 'PROCESSING'`
+	err := r.db.SelectContext(ctx, &orders, query)
+	return orders, err
 }

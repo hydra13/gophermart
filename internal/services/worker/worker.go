@@ -14,8 +14,8 @@ type AccualClient interface {
 }
 
 type OrderService interface {
-	GetOrdersForCheckingStatus(ctx context.Context) ([]string, error)
-	UpdateOrder(ctx context.Context, orderNumber string, status string, accrual int64) error
+	GetOrdersForCheckingStatus(ctx context.Context) ([]models.Order, error)
+	UpdateOrder(ctx context.Context, order models.Order) error
 }
 
 const sleepTimeout = 3 * time.Second
@@ -64,17 +64,16 @@ func (w *Worker) doWork(ctx context.Context) error {
 
 func (w *Worker) handleProcessingOrders(ctx context.Context) error {
 	orders, err := w.orderService.GetOrdersForCheckingStatus(ctx)
-	orders = append(orders, "4440", "4444", "4444444444444448")
 	if err != nil {
 		return err
 	}
 
-	for _, orderNumber := range orders {
-		resp, err := w.client.GetOrderStatus(ctx, orderNumber)
+	for _, order := range orders {
+		resp, err := w.client.GetOrderStatus(ctx, order.Number)
 		if err != nil {
 			w.log.Error().
 				Err(err).
-				Str("order_number", orderNumber).
+				Str("order_number", order.Number).
 				Msg("error get order status")
 
 			return err
@@ -87,11 +86,14 @@ func (w *Worker) handleProcessingOrders(ctx context.Context) error {
 			Msg("got order status")
 
 		if resp.Status == models.OrderStatusInvalid || resp.Status == models.OrderStatusProcessed {
-			err := w.orderService.UpdateOrder(ctx, orderNumber, resp.Status, resp.Accrual)
+			order.Status = resp.Status
+			order.Accrual = resp.Accrual
+
+			err := w.orderService.UpdateOrder(ctx, order)
 			if err != nil {
 				w.log.Error().
 					Err(err).
-					Str("order_number", orderNumber).
+					Str("order_number", order.Number).
 					Msg("error update order status")
 
 				return err

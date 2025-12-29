@@ -35,9 +35,20 @@ func TestWorker_handleProcessingOrders(t *testing.T) {
 				return mocks.NewOrderServiceMock(mc).
 					GetOrdersForCheckingStatusMock.
 					Expect(minimock.AnyContext).
-					Return([]string{"4440"}, nil).
+					Return([]models.Order{
+						{
+							Number: "4440",
+							Status: models.OrderStatusProcessing,
+							UserID: 777,
+						},
+					}, nil).
 					UpdateOrderMock.
-					Expect(minimock.AnyContext, "4440", models.OrderStatusProcessed, 100).
+					Expect(minimock.AnyContext, models.Order{
+						Number:  "4440",
+						Status:  models.OrderStatusProcessed,
+						Accrual: 100,
+						UserID:  777,
+					}).
 					Return(nil)
 			},
 			wantErr: false,

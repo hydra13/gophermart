@@ -52,3 +52,23 @@ func (r *AccountRepository) Update(ctx context.Context, userID int64, accrual, w
 	}
 	return nil
 }
+
+func (r *AccountRepository) UpdateTx(ctx context.Context, tx *sqlx.Tx, userID int64, accrual, withdrawal int64) error {
+	query := `
+		UPDATE accounts
+		SET current = current + $1, withdrawn = withdrawn + $2
+		WHERE user_id = $3
+	`
+	result, err := tx.ExecContext(ctx, query, accrual, withdrawal, userID)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrAccountNotFound
+	}
+	return nil
+}

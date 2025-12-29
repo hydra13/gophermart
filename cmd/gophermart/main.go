@@ -28,6 +28,8 @@ import (
 	authMiddleware "github.com/hydra13/gophermart/internal/middlewares/auth"
 	"github.com/hydra13/gophermart/internal/middlewares/compresser"
 	"github.com/hydra13/gophermart/internal/middlewares/logger"
+	txRepository "github.com/hydra13/gophermart/internal/repositories"
+	accountRepository "github.com/hydra13/gophermart/internal/repositories/account"
 	orderRepository "github.com/hydra13/gophermart/internal/repositories/order"
 	userRepository "github.com/hydra13/gophermart/internal/repositories/user"
 	authService "github.com/hydra13/gophermart/internal/services/auth"
@@ -63,10 +65,12 @@ func main() {
 
 	// Services
 	auth := authService.New()
+	accountRepo := accountRepository.NewAccountRepository(dbInstance)
 	userRepo := userRepository.NewUserRepository(dbInstance)
 	orderRepo := orderRepository.NewOrderRepository(dbInstance)
+	txRepo := txRepository.NewTransactionRepository(dbInstance, orderRepo, accountRepo)
 	user := userService.NewUserService(userRepo)
-	order := orderService.NewOrderService(orderRepo)
+	order := orderService.NewOrderService(orderRepo, txRepo)
 	w := worker.NewWorker(accrual, order, log)
 
 	//Middlewares
