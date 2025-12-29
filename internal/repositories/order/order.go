@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	ErrOrderExists   = errors.New("order already exists")
-	ErrOrderNotFound = errors.New("order not found")
-	ErrConflict      = errors.New("conflict")
+	ErrOrderExists    = errors.New("order already exists")
+	ErrOrderNotFound  = errors.New("order not found")
+	ErrOrdersNotFound = errors.New("orders not found")
+	ErrConflict       = errors.New("conflict")
 )
 
 type OrderRepository struct {
@@ -96,7 +97,13 @@ func (r *OrderRepository) GetByUserID(ctx context.Context, userID int64) ([]mode
 		ORDER BY uploaded_at DESC
 	`
 	err := r.db.SelectContext(ctx, &orders, query, userID)
-	return orders, err
+	if err == sql.ErrNoRows {
+		return orders, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return orders, nil
 }
 
 func (r *OrderRepository) GetByNumber(ctx context.Context, number string) (int64, error) {

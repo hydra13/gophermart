@@ -74,7 +74,7 @@ func main() {
 
 	// Handlers
 	getBalanceHandler := balanceHandler.NewHandler(log)
-	getOrdersByUserHandler := getOrdersHandler.NewHandler(log)
+	getOrdersByUserHandler := getOrdersHandler.NewHandler(order, log)
 	addOrderByUserHandler := addOrderHandler.NewHandler(order, log)
 	loginHandler := loginHandler.NewHandler(user, auth, log)
 	registerHandler := registerHandler.NewHandler(user, auth, log)
