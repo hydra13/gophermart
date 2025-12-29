@@ -1,3 +1,4 @@
+//go:generate minimock -i .AccountService -o mocks -s _mock.go -g
 package withdrawhandler
 
 import (

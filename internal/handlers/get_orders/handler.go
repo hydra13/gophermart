@@ -1,3 +1,4 @@
+//go:generate minimock -i .OrderService -o mocks -s _mock.go -g
 package getorderhandler
 
 import (

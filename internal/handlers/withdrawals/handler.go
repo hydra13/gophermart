@@ -1,3 +1,4 @@
+//go:generate minimock -i .WithdrawalService -o mocks -s _mock.go -g
 package withdrawals
 
 import (
