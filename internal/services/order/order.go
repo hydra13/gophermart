@@ -44,7 +44,6 @@ func (s *OrderService) AddOrder(ctx context.Context, orderNumber string, userID 
 	}
 
 	if err != nil {
-		// TODO: надо мапить на ошибки сервисного слоя а не прокидывать ошибки репозитория
 		return err
 	}
 
@@ -54,7 +53,6 @@ func (s *OrderService) AddOrder(ctx context.Context, orderNumber string, userID 
 func (s *OrderService) GetOrdersByUser(ctx context.Context, userID int64) ([]models.Order, error) {
 	orders, err := s.orderRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		// TODO: надо мапить на ошибки сервисного слоя а не прокидывать ошибки репозитория
 		return nil, err
 	}
 
@@ -64,7 +62,6 @@ func (s *OrderService) GetOrdersByUser(ctx context.Context, userID int64) ([]mod
 func (s *OrderService) GetOrdersForCheckingStatus(ctx context.Context) ([]models.Order, error) {
 	orders, err := s.orderRepo.GetOrdersForCheckStatus(ctx)
 	if err != nil {
-		// TODO: надо мапить на ошибки сервисного слоя а не прокидывать ошибки репозитория
 		return nil, err
 	}
 
@@ -77,7 +74,6 @@ func (s *OrderService) UpdateOrder(
 ) error {
 	err := s.txRepo.UpdateOrderAndAccount(ctx, order)
 	if err != nil {
-		// TODO: надо мапить на ошибки сервисного слоя а не прокидывать ошибки репозитория
 		return err
 	}
 

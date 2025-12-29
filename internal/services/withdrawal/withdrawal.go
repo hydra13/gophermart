@@ -21,7 +21,6 @@ func NewWithdrawalService(repo WithdrawalRepository) *WithdrawalService {
 func (w *WithdrawalService) GetWithdrawalsByUser(ctx context.Context, userID int64) ([]models.Withdrawal, error) {
 	res, err := w.repo.GetByUserID(ctx, userID)
 	if err != nil {
-		// TODO: надо мапить на ошибки сервисного слоя а не прокидывать ошибки репозитория
 		return []models.Withdrawal{}, err
 	}
 	return res, nil

@@ -31,12 +31,10 @@ func NewAccountService(
 }
 
 func (s *AccountService) GetAccount(ctx context.Context, userID int64) (models.Account, error) {
-	// TODO: надо мапить на ошибки сервисного слоя а не прокидывать ошибки репозитория
 	return s.accountRepository.Get(ctx, userID)
 }
 
 func (s *AccountService) Withdraw(ctx context.Context, withdrawal models.Withdrawal) error {
-	// TODO: надо мапить на ошибки сервисного слоя а не прокидывать ошибки репозитория
 	err := s.transactionRepository.Withdraw(ctx, withdrawal)
 
 	if err == repositories.ErrNotEnoughMoney {
