@@ -32,6 +32,7 @@ import (
 	accountRepository "github.com/hydra13/gophermart/internal/repositories/account"
 	orderRepository "github.com/hydra13/gophermart/internal/repositories/order"
 	userRepository "github.com/hydra13/gophermart/internal/repositories/user"
+	accountService "github.com/hydra13/gophermart/internal/services/account"
 	authService "github.com/hydra13/gophermart/internal/services/auth"
 	orderService "github.com/hydra13/gophermart/internal/services/order"
 	userService "github.com/hydra13/gophermart/internal/services/user"
@@ -68,8 +69,14 @@ func main() {
 	accountRepo := accountRepository.NewAccountRepository(dbInstance)
 	userRepo := userRepository.NewUserRepository(dbInstance)
 	orderRepo := orderRepository.NewOrderRepository(dbInstance)
-	txRepo := txRepository.NewTransactionRepository(dbInstance, orderRepo, accountRepo)
-	user := userService.NewUserService(userRepo)
+	txRepo := txRepository.NewTransactionRepository(
+		dbInstance,
+		orderRepo,
+		accountRepo,
+		userRepo,
+	)
+	account := accountService.NewAccountService(accountRepo)
+	user := userService.NewUserService(userRepo, txRepo)
 	order := orderService.NewOrderService(orderRepo, txRepo)
 	w := worker.NewWorker(accrual, order, log)
 
@@ -77,7 +84,7 @@ func main() {
 	authMiddleware := authMiddleware.NewAuthMiddleware(auth, log)
 
 	// Handlers
-	getBalanceHandler := balanceHandler.NewHandler(log)
+	getBalanceHandler := balanceHandler.NewHandler(account, log)
 	getOrdersByUserHandler := getOrdersHandler.NewHandler(order, log)
 	addOrderByUserHandler := addOrderHandler.NewHandler(order, log)
 	loginHandler := loginHandler.NewHandler(user, auth, log)

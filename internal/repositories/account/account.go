@@ -3,14 +3,12 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/jmoiron/sqlx"
 
 	"github.com/hydra13/gophermart/internal/models"
+	repositories "github.com/hydra13/gophermart/internal/repositories"
 )
-
-var ErrAccountNotFound = errors.New("account not found")
 
 type AccountRepository struct {
 	db *sqlx.DB
@@ -20,17 +18,23 @@ func NewAccountRepository(db *sqlx.DB) *AccountRepository {
 	return &AccountRepository{db: db}
 }
 
-func (r *AccountRepository) Get(ctx context.Context, userID int64) (*models.Account, error) {
+func (r *AccountRepository) CreateTx(ctx context.Context, tx *sqlx.Tx, userID int64) error {
+	query := `INSERT INTO accounts (user_id, current, withdrawn) VALUES ($1, 0, 0)`
+	_, err := tx.ExecContext(ctx, query, userID)
+	return err
+}
+
+func (r *AccountRepository) Get(ctx context.Context, userID int64) (models.Account, error) {
 	var acc models.Account
 	query := `SELECT user_id, current, withdrawn FROM accounts WHERE user_id = $1`
 	err := r.db.GetContext(ctx, &acc, query, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrAccountNotFound
+			return acc, repositories.ErrAccountNotFound
 		}
-		return nil, err
+		return acc, err
 	}
-	return &acc, nil
+	return acc, nil
 }
 
 func (r *AccountRepository) Update(ctx context.Context, userID int64, accrual, withdrawal int64) error {
@@ -48,7 +52,7 @@ func (r *AccountRepository) Update(ctx context.Context, userID int64, accrual, w
 		return err
 	}
 	if rows == 0 {
-		return ErrAccountNotFound
+		return repositories.ErrAccountNotFound
 	}
 	return nil
 }
@@ -68,7 +72,7 @@ func (r *AccountRepository) UpdateTx(ctx context.Context, tx *sqlx.Tx, userID in
 		return err
 	}
 	if rows == 0 {
-		return ErrAccountNotFound
+		return repositories.ErrAccountNotFound
 	}
 	return nil
 }

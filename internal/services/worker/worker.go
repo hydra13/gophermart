@@ -18,7 +18,7 @@ type OrderService interface {
 	UpdateOrder(ctx context.Context, order models.Order) error
 }
 
-const sleepTimeout = 3 * time.Second
+const sleepTimeout = 10 * time.Second
 
 type Worker struct {
 	client       AccualClient
@@ -47,7 +47,10 @@ func (w *Worker) Run(ctx context.Context) error {
 			err := w.doWork(ctx)
 
 			if err != nil {
-				return err
+				w.log.Error().
+					Err(err).
+					Msg("worker error")
+				// return err
 			}
 		}
 	}

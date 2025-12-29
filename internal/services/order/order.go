@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"github.com/hydra13/gophermart/internal/models"
-	repositories "github.com/hydra13/gophermart/internal/repositories/order"
+	repositories "github.com/hydra13/gophermart/internal/repositories"
 )
 
 type OrderRepository interface {
 	CheckAndCreate(ctx context.Context, number string, userID int64) error
 	GetByUserID(ctx context.Context, userID int64) ([]models.Order, error)
-	GetProcessingOrders(ctx context.Context) ([]models.Order, error)
+	GetOrdersForCheckStatus(ctx context.Context) ([]models.Order, error)
 	UpdateStatus(ctx context.Context, orderNumber string, status string, accrual int64) error
 }
 
@@ -62,7 +62,7 @@ func (s *OrderService) GetOrdersByUser(ctx context.Context, userID int64) ([]mod
 }
 
 func (s *OrderService) GetOrdersForCheckingStatus(ctx context.Context) ([]models.Order, error) {
-	orders, err := s.orderRepo.GetProcessingOrders(ctx)
+	orders, err := s.orderRepo.GetOrdersForCheckStatus(ctx)
 	if err != nil {
 		// TODO: надо мапить на ошибки сервисного слоя а не прокидывать ошибки репозитория
 		return nil, err

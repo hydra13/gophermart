@@ -3,18 +3,11 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/jmoiron/sqlx"
 
 	"github.com/hydra13/gophermart/internal/models"
-)
-
-var (
-	ErrOrderExists    = errors.New("order already exists")
-	ErrOrderNotFound  = errors.New("order not found")
-	ErrOrdersNotFound = errors.New("orders not found")
-	ErrConflict       = errors.New("conflict")
+	repositories "github.com/hydra13/gophermart/internal/repositories"
 )
 
 type OrderRepository struct {
@@ -39,7 +32,7 @@ func (r *OrderRepository) Create(ctx context.Context, number string, userID int6
 		return err
 	}
 	if rows == 0 {
-		return ErrOrderExists
+		return repositories.ErrOrderExists
 	}
 	return nil
 }
@@ -61,10 +54,10 @@ func (r *OrderRepository) CheckAndCreate(ctx context.Context, number string, use
 
 	if err != sql.ErrNoRows {
 		if userID != userIDFromDB {
-			return ErrConflict
+			return repositories.ErrConflict
 		}
 
-		return ErrOrderExists
+		return repositories.ErrOrderExists
 	}
 
 	query = `
@@ -82,7 +75,7 @@ func (r *OrderRepository) CheckAndCreate(ctx context.Context, number string, use
 	}
 
 	if rows == 0 {
-		return ErrOrderExists
+		return repositories.ErrOrderExists
 	}
 
 	return tx.Commit()
@@ -112,7 +105,7 @@ func (r *OrderRepository) GetByNumber(ctx context.Context, number string) (int64
 	err := r.db.GetContext(ctx, &userID, query, number)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, ErrOrderNotFound
+			return 0, repositories.ErrOrderNotFound
 		}
 		return 0, err
 	}
@@ -134,7 +127,7 @@ func (r *OrderRepository) UpdateStatus(ctx context.Context, number string, statu
 		return err
 	}
 	if rows == 0 {
-		return ErrOrderNotFound
+		return repositories.ErrOrderNotFound
 	}
 	return nil
 }
@@ -160,14 +153,14 @@ func (r *OrderRepository) UpdateTx(
 		return err
 	}
 	if rows == 0 {
-		return ErrOrderNotFound
+		return repositories.ErrOrderNotFound
 	}
 	return nil
 }
 
-func (r *OrderRepository) GetProcessingOrders(ctx context.Context) ([]models.Order, error) {
+func (r *OrderRepository) GetOrdersForCheckStatus(ctx context.Context) ([]models.Order, error) {
 	var orders []models.Order
-	query := `SELECT number, user_id FROM orders WHERE status = 'PROCESSING'`
+	query := `SELECT number, user_id FROM orders WHERE status = 'NEW' or status = 'PROCESSING'`
 	err := r.db.SelectContext(ctx, &orders, query)
 	return orders, err
 }

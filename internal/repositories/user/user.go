@@ -10,11 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/hydra13/gophermart/internal/models"
-)
-
-var (
-	ErrLoginExists  = errors.New("user with this login already exists")
-	ErrUserNotFound = errors.New("user not found")
+	repositories "github.com/hydra13/gophermart/internal/repositories"
 )
 
 type UserRepository struct {
@@ -32,7 +28,21 @@ func (r *UserRepository) Create(ctx context.Context, login, passwordHash string)
 	if err != nil {
 		// Проверка на дубликат логина (уникальный индекс)
 		if isUniqueViolation(err) {
-			return 0, ErrLoginExists
+			return 0, repositories.ErrLoginExists
+		}
+		return 0, err
+	}
+	return userID, nil
+}
+
+func (r *UserRepository) CreateTx(ctx context.Context, tx *sqlx.Tx, user models.User) (int64, error) {
+	var userID int64
+	query := `INSERT INTO users (login, password_hash) VALUES ($1, $2) RETURNING user_id`
+	err := tx.QueryRowContext(ctx, query, user.Login, user.PasswordHash).Scan(&userID)
+	if err != nil {
+		// Проверка на дубликат логина (уникальный индекс)
+		if isUniqueViolation(err) {
+			return 0, repositories.ErrLoginExists
 		}
 		return 0, err
 	}
@@ -45,7 +55,7 @@ func (r *UserRepository) GetByLogin(ctx context.Context, login string) (*models.
 	err := r.db.GetContext(ctx, &user, query, login)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrUserNotFound
+			return nil, repositories.ErrUserNotFound
 		}
 		return nil, err
 	}

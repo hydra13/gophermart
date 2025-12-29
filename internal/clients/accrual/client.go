@@ -43,10 +43,11 @@ func (c Client) GetOrderStatus(ctx context.Context, orderNumber string) (models.
 	requestURL := c.generateRequestURL(orderNumber)
 
 	resp, err := http.Get(requestURL)
-
 	if err != nil {
 		return models.AccrualResponse{}, err
 	}
+
+	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNoContent {
 		return models.AccrualResponse{}, models.ErrOrderNotFound
@@ -55,8 +56,6 @@ func (c Client) GetOrderStatus(ctx context.Context, orderNumber string) (models.
 	if resp.Header.Get("Content-Type") != "application/json" {
 		return models.AccrualResponse{}, ErrAccualServerResponseContentType
 	}
-
-	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
