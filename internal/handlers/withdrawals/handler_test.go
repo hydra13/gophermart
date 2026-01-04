@@ -123,7 +123,7 @@ func TestHandler_Handle(t *testing.T) {
 
 func TestHandler_toResponse(t *testing.T) {
 	processedAt := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
-	
+
 	withdrawals := []models.Withdrawal{
 		{
 			OrderNumber: "12345",

@@ -18,20 +18,20 @@ type (
 	}
 
 	loggingResponseWriter struct {
-		http.ResponseWriter // встраиваем оригинальный http.ResponseWriter
-		responseData        *responseData
+		http.ResponseWriter
+		responseData *responseData
 	}
 )
 
 func (lrw *loggingResponseWriter) Write(data []byte) (int, error) {
-	size, err := lrw.ResponseWriter.Write(data) // записываем данные в оригинальный ResponseWriter
+	size, err := lrw.ResponseWriter.Write(data)
 	lrw.responseData.size += size
 
 	return size, err
 }
 
 func (lrw *loggingResponseWriter) WriteHeader(statusCode int) {
-	lrw.ResponseWriter.WriteHeader(statusCode) // передаём статус код в оригинальный ResponseWriter
+	lrw.ResponseWriter.WriteHeader(statusCode)
 	lrw.responseData.status = statusCode
 }
 

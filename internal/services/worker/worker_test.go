@@ -153,19 +153,15 @@ func TestWorker_worker(t *testing.T) {
 
 			ordersChan := make(chan models.Order, 1)
 
-			// Create a context with timeout
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			defer cancel()
 
-			// Send order to worker if needed
 			if tt.sendOrder {
 				ordersChan <- tt.order
 			}
 
-			// Close channel to signal worker to finish
 			close(ordersChan)
 
-			// Run worker
 			w.worker(ctx, ordersChan, 0)
 		})
 	}
