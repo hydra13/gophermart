@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -127,7 +128,7 @@ func main() {
 	go func() {
 		log.Debug().Msg("🚀 Starting server at " + conf.RunAddress)
 		if err := srv.ListenAndServe(); err != nil {
-			if err != http.ErrServerClosed {
+			if !errors.Is(err, http.ErrServerClosed) {
 				log.Fatal().Err(err).Msg("🟥 Server failed to start")
 			} else {
 				log.Info().Msg("🟨 Server closed")

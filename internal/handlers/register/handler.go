@@ -4,6 +4,7 @@ package registerhandler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/rs/zerolog"
@@ -73,7 +74,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.u.Register(r.Context(), req.Login, req.Password)
 
 	if err != nil {
-		if err == models.ErrUserAlreadyExists {
+		if errors.Is(err, models.ErrUserAlreadyExists) {
 			h.log.Debug().
 				Err(err).
 				Msg("register: user already exists")

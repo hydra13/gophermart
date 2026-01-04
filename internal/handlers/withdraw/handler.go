@@ -4,6 +4,7 @@ package withdrawhandler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/rs/zerolog"
@@ -84,7 +85,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		Sum:         sum,
 		UserID:      userID,
 	})
-	if err == models.ErrNotEnoughMoney {
+	if errors.Is(err, models.ErrNotEnoughMoney) {
 		h.log.Debug().
 			Err(err).
 			Msg("withdraw: error not enough money")

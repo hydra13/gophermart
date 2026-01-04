@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hydra13/gophermart/internal/models"
 	repositories "github.com/hydra13/gophermart/internal/repositories"
@@ -35,11 +36,11 @@ func NewOrderService(
 
 func (s *OrderService) AddOrder(ctx context.Context, orderNumber string, userID int64) error {
 	err := s.orderRepo.CheckAndCreate(ctx, orderNumber, userID)
-	if err == repositories.ErrConflict {
+	if errors.Is(err, repositories.ErrConflict) {
 		return models.ErrConflict
 	}
 
-	if err == repositories.ErrOrderExists {
+	if errors.Is(err, repositories.ErrOrderExists) {
 		return models.ErrOrderAlreadyExists
 	}
 

@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/jmoiron/sqlx"
 
@@ -59,11 +60,11 @@ func (r *OrderRepository) CheckAndCreate(ctx context.Context, number string, use
 
 		query := `SELECT user_id FROM orders WHERE number = $1 LIMIT 1`
 		err = tx.GetContext(ctx, &userIDFromDB, query, number)
-		if err != sql.ErrNoRows && err != nil {
+		if !errors.Is(err, sql.ErrNoRows) && err != nil {
 			return err
 		}
 
-		if err != sql.ErrNoRows {
+		if !errors.Is(err, sql.ErrNoRows) {
 			if userID != userIDFromDB {
 				return repositories.ErrConflict
 			}
@@ -117,7 +118,7 @@ func (r *OrderRepository) GetByNumber(ctx context.Context, number string) (int64
 		query := `SELECT user_id FROM orders WHERE number = $1`
 		err := r.db.GetContext(ctx, &userID, query, number)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				return repositories.ErrOrderNotFound
 			}
 			return err

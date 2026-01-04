@@ -3,6 +3,7 @@ package addorderhandler
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 
@@ -76,7 +77,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = h.o.AddOrder(r.Context(), orderNum, userID)
 
-	if err == models.ErrOrderAlreadyExists {
+	if errors.Is(err, models.ErrOrderAlreadyExists) {
 		h.log.Info().
 			Str("order", orderNum).
 			Msg("add_order: order already exists")
@@ -85,7 +86,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err == models.ErrConflict {
+	if errors.Is(err, models.ErrConflict) {
 		h.log.Error().
 			Err(err).
 			Msg("add_order: order already added by another user")

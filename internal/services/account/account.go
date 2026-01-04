@@ -2,6 +2,7 @@ package account
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hydra13/gophermart/internal/models"
 	"github.com/hydra13/gophermart/internal/repositories"
@@ -37,7 +38,7 @@ func (s *AccountService) GetAccount(ctx context.Context, userID int64) (models.A
 func (s *AccountService) Withdraw(ctx context.Context, withdrawal models.Withdrawal) error {
 	err := s.transactionRepository.Withdraw(ctx, withdrawal)
 
-	if err == repositories.ErrNotEnoughMoney {
+	if errors.Is(err, repositories.ErrNotEnoughMoney) {
 		return models.ErrNotEnoughMoney
 	}
 

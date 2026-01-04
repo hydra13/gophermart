@@ -69,7 +69,7 @@ func (r *UserRepository) GetByLogin(ctx context.Context, login string) (*models.
 		query := `SELECT user_id, login, password_hash, created_at FROM users WHERE login = $1`
 		err := r.db.GetContext(ctx, &user, query, login)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				return repositories.ErrUserNotFound
 			}
 			return err

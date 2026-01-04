@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/jmoiron/sqlx"
 
@@ -40,7 +41,7 @@ func (r *AccountRepository) Get(ctx context.Context, userID int64) (models.Accou
 		query := `SELECT user_id, current, withdrawn FROM accounts WHERE user_id = $1`
 		err := r.db.GetContext(ctx, &acc, query, userID)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				return repositories.ErrAccountNotFound
 			}
 			return err

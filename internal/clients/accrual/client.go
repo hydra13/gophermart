@@ -36,7 +36,8 @@ const (
 var (
 	ErrAccualServerResponseStatus      = errors.New("accrual server return unexpected status")
 	ErrAccualServerResponseContentType = errors.New("accrual server return unexpected content type")
-	ErrAccualServerTooManyRequests     = errors.New("too many requests")
+	ErrAccualServerTooManyRequests     = errors.New("accrual server return too many requests")
+	ErrAccualServerInternalError       = errors.New("accrual server return internal server error")
 )
 
 type Client struct {
@@ -94,7 +95,7 @@ func (c Client) GetOrderStatus(ctx context.Context, orderNumber string) (models.
 
 		// 5xx - обработка ошибок сервера
 		if resp.StatusCode >= 500 {
-			lastErr = fmt.Errorf("server error: %d", resp.StatusCode)
+			lastErr = ErrAccualServerInternalError
 			continue
 		}
 

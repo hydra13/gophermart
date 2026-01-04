@@ -4,6 +4,7 @@ package loginhandler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/rs/zerolog"
@@ -73,7 +74,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.u.Login(r.Context(), req.Login, req.Password)
 
 	if err != nil {
-		if err == models.ErrUserNotFound {
+		if errors.Is(err, models.ErrUserNotFound) {
 			h.log.Debug().
 				Err(err).
 				Msg("login: invalid login or password")

@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
@@ -45,7 +46,7 @@ func (s *UserService) Register(ctx context.Context, login, password string) (int
 		PasswordHash: string(passwordHash),
 	})
 	if err != nil {
-		if err == repositories.ErrLoginExists {
+		if errors.Is(err, repositories.ErrLoginExists) {
 			return 0, models.ErrUserAlreadyExists
 		}
 		return 0, fmt.Errorf("failed to create user: %w", err)
@@ -57,7 +58,7 @@ func (s *UserService) Register(ctx context.Context, login, password string) (int
 func (s *UserService) Login(ctx context.Context, login, password string) (int64, error) {
 	user, err := s.userRepo.GetByLogin(ctx, login)
 	if err != nil {
-		if err == repositories.ErrUserNotFound {
+		if errors.Is(err, repositories.ErrUserNotFound) {
 			return 0, models.ErrUserNotFound
 		}
 		return 0, fmt.Errorf("failed to get user: %w", err)

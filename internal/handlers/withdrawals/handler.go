@@ -4,6 +4,7 @@ package withdrawals
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -43,7 +44,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	userID := authContext.GetUserIDFromContext(r.Context())
 
 	withdrawals, err := h.withdrawalService.GetWithdrawalsByUser(r.Context(), userID)
-	if err == models.ErrNoWithdrawals {
+	if errors.Is(err, models.ErrNoWithdrawals) {
 		h.log.Debug().
 			Int64("user_id", userID).
 			Msg("withdrawals: no withdrawals for user")
