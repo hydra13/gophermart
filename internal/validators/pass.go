@@ -21,6 +21,9 @@ func IsValidPass(password string) bool {
 	if !strings.ContainsAny(password, "0123456789") {
 		return false
 	}
+	if !strings.ContainsAny(password, "!@#$%^&*()_+-=[]{}|;:,.<>?") {
+		return false
+	}
 
 	return true
 }
