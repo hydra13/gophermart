@@ -147,9 +147,10 @@ func main() {
 		log.Info().Msg("⬜ Worker exited")
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	<-ctx.Done()
 
 	log.Info().Msg("⏳ Shutting down worker...")
 	cancelWorker()
