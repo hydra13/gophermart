@@ -31,6 +31,7 @@ type TransactionRepository struct {
 	accountRepo    AccountRepository
 	userRepo       UserRepository
 	withdrawalRepo WithdrawalRepository
+	retry          *Decorator
 }
 
 func NewTransactionRepository(
@@ -46,6 +47,11 @@ func NewTransactionRepository(
 		accountRepo:    accountRepo,
 		userRepo:       userRepo,
 		withdrawalRepo: withdrawalRepo,
+		retry: NewRetryDecorator(Config{
+			MaxRetries: RetryMaxRetries,
+			BaseDelay:  RetryBaseDelay,
+			MaxDelay:   RetryMaxDelay,
+		}),
 	}
 }
 
@@ -53,67 +59,78 @@ func (r *TransactionRepository) UpdateOrderAndAccount(
 	ctx context.Context,
 	order models.Order,
 ) error {
-	tx, err := r.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
+	return r.retry.Execute(func() error {
+		tx, err := r.db.BeginTxx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
 
-	err = r.orderRepo.UpdateTx(ctx, tx, order.Number, order.Status, order.Accrual)
-	if err != nil {
-		return err
-	}
+		err = r.orderRepo.UpdateTx(ctx, tx, order.Number, order.Status, order.Accrual)
+		if err != nil {
+			return err
+		}
 
-	err = r.accountRepo.UpdateTx(ctx, tx, order.UserID, order.Accrual, 0)
-	if err != nil {
-		return err
-	}
+		err = r.accountRepo.UpdateTx(ctx, tx, order.UserID, order.Accrual, 0)
+		if err != nil {
+			return err
+		}
 
-	return tx.Commit()
+		return tx.Commit()
+	})
 }
 
 func (r *TransactionRepository) CreateUser(
 	ctx context.Context,
 	user models.User,
 ) (int64, error) {
-	tx, err := r.db.BeginTxx(ctx, nil)
+	var userID int64
+	err := r.retry.Execute(func() error {
+		tx, err := r.db.BeginTxx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+
+		userID, err = r.userRepo.CreateTx(ctx, tx, user)
+		if err != nil {
+			return err
+		}
+
+		err = r.accountRepo.CreateTx(ctx, tx, userID)
+		if err != nil {
+			return err
+		}
+
+		return tx.Commit()
+	})
 	if err != nil {
 		return -1, err
 	}
-	defer tx.Rollback()
-
-	userID, err := r.userRepo.CreateTx(ctx, tx, user)
-	if err != nil {
-		return -1, err
-	}
-
-	err = r.accountRepo.CreateTx(ctx, tx, userID)
-	if err != nil {
-		return -1, err
-	}
-
-	return userID, tx.Commit()
+	return userID, nil
 }
 
 func (r *TransactionRepository) Withdraw(
 	ctx context.Context,
 	withdrawal models.Withdrawal,
 ) error {
-	tx, err := r.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
+	return r.retry.Execute(func() error {
+		tx, err := r.db.BeginTxx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
 
-	err = r.accountRepo.WithdrawTx(ctx, tx, withdrawal.UserID, withdrawal.Sum)
-	if err != nil {
-		return err
-	}
+		err = r.accountRepo.WithdrawTx(ctx, tx, withdrawal.UserID, withdrawal.Sum)
+		if err != nil {
+			return err
+		}
 
-	err = r.withdrawalRepo.AddTx(ctx, tx, withdrawal)
-	if err != nil {
-		return err
-	}
+		err = r.withdrawalRepo.AddTx(ctx, tx, withdrawal)
+		if err != nil {
+			return err
+		}
 
-	return tx.Commit()
+		return tx.Commit()
+	})
 }
