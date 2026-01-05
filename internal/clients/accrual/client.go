@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/hydra13/gophermart/internal/models"
 	"github.com/hydra13/gophermart/internal/utils"
@@ -27,12 +25,6 @@ const (
 	AccualStatusProcessed  = "PROCESSED"
 )
 
-const (
-	maxRetries = 3
-	baseDelay  = time.Millisecond * 100
-	maxDelay   = time.Second
-)
-
 var (
 	ErrAccualServerResponseStatus      = errors.New("accrual server return unexpected status")
 	ErrAccualServerResponseContentType = errors.New("accrual server return unexpected content type")
@@ -40,84 +32,50 @@ var (
 	ErrAccualServerInternalError       = errors.New("accrual server return internal server error")
 )
 
-type Client struct {
-	accrualSystemAddress string
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
 }
 
-func New(accrualSystemAddress string) Client {
+type Client struct {
+	accrualSystemAddress string
+	httpClient           HTTPClient
+}
+
+func New(accrualSystemAddress string, httpClient HTTPClient) Client {
 	return Client{
 		accrualSystemAddress: accrualSystemAddress,
+		httpClient:           httpClient,
 	}
 }
 
 func (c Client) GetOrderStatus(ctx context.Context, orderNumber string) (models.AccrualResponse, error) {
-	var lastErr error
-
-	for attempt := 0; attempt <= maxRetries; attempt++ {
-		if attempt > 0 {
-			delay := c.calculateDelay(attempt)
-
-			select {
-			case <-ctx.Done():
-				return models.AccrualResponse{}, ctx.Err()
-			case <-time.After(delay):
-			}
-		}
-
-		resp, err := c.makeRequest(ctx, orderNumber)
-		if err != nil {
-			lastErr = err
-			continue
-		}
-
-		defer resp.Body.Close()
-
-		// Успешный ответ
-		if resp.StatusCode >= 200 && resp.StatusCode < 300 && resp.StatusCode != http.StatusTooManyRequests {
-			return c.parseSuccessfulResponse(resp, orderNumber)
-		}
-
-		// 429 Too Many Requests
-		if resp.StatusCode == http.StatusTooManyRequests {
-			lastErr = ErrAccualServerTooManyRequests
-			// Если есть заголовок Retry-After, используем его
-			if retryAfter := resp.Header.Get("Retry-After"); retryAfter != "" {
-				if seconds, parseErr := strconv.Atoi(retryAfter); parseErr == nil {
-					select {
-					case <-ctx.Done():
-						return models.AccrualResponse{}, ctx.Err()
-					case <-time.After(time.Duration(seconds) * time.Second):
-					}
-				}
-			}
-			continue
-		}
-
-		// 5xx - обработка ошибок сервера
-		if resp.StatusCode >= 500 {
-			lastErr = ErrAccualServerInternalError
-			continue
-		}
-
-		// 204 No Content
-		if resp.StatusCode == http.StatusNoContent {
-			return models.AccrualResponse{}, models.ErrOrderNotFound
-		}
-
-		// Для других ошибок не повторяем
-		lastErr = fmt.Errorf("HTTP error: %d", resp.StatusCode)
-		break
+	// Создаем запрос
+	requestURL := c.generateRequestURL(orderNumber)
+	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
+	if err != nil {
+		return models.AccrualResponse{}, err
 	}
 
-	return models.AccrualResponse{}, lastErr
-}
-
-func (c Client) calculateDelay(attempt int) time.Duration {
-	delay := baseDelay * time.Duration(1<<uint(attempt))
-	if delay > maxDelay {
-		delay = maxDelay
+	// Выполняем запрос через HTTP клиент с ретраями и rate limiting
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return models.AccrualResponse{}, err
 	}
-	return delay
+
+	defer resp.Body.Close()
+
+	// Обрабатываем ответ
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return c.parseSuccessfulResponse(resp, orderNumber)
+	}
+
+	// 204 No Content
+	if resp.StatusCode == http.StatusNoContent {
+		return models.AccrualResponse{}, models.ErrOrderNotFound
+	}
+
+	// Для других ошибок
+	return models.AccrualResponse{}, fmt.Errorf("HTTP error: %d", resp.StatusCode)
 }
 
 func (c Client) parseSuccessfulResponse(resp *http.Response, orderNumber string) (models.AccrualResponse, error) {
@@ -150,16 +108,6 @@ func (c Client) parseSuccessfulResponse(resp *http.Response, orderNumber string)
 		Status:  status,
 		Accrual: utils.FromRub(respJSON.Accrual),
 	}, nil
-}
-
-func (c Client) makeRequest(ctx context.Context, orderNumber string) (*http.Response, error) {
-	requestURL := c.generateRequestURL(orderNumber)
-	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return http.DefaultClient.Do(req)
 }
 
 func (c *Client) generateRequestURL(orderNumber string) string {

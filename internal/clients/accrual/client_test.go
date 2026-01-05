@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hydra13/gophermart/internal/clients/httpclient"
 	"github.com/hydra13/gophermart/internal/models"
 	"github.com/stretchr/testify/assert"
 )
@@ -62,17 +63,6 @@ func TestClient_GetOrderStatus(t *testing.T) {
 			errorIs:     ErrAccualServerResponseContentType,
 		},
 		{
-			name: "too many requests error",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Retry-After", "1")
-				w.WriteHeader(http.StatusTooManyRequests)
-			},
-			setup:       func() context.Context { return context.Background() },
-			orderNumber: "12345",
-			wantErr:     true,
-			errorIs:     ErrAccualServerTooManyRequests,
-		},
-		{
 			name: "server error 500",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -107,7 +97,7 @@ func TestClient_GetOrderStatus(t *testing.T) {
 			server := httptest.NewServer(tt.handler)
 			defer server.Close()
 
-			client := New(server.URL)
+			client := New(server.URL, httpclient.New())
 			ctx := tt.setup()
 
 			resp, err := client.GetOrderStatus(ctx, tt.orderNumber)
@@ -144,7 +134,7 @@ func TestClient_GetOrderStatus_RetryOn500(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := New(server.URL)
+	client := New(server.URL, httpclient.New())
 	resp, err := client.GetOrderStatus(context.Background(), "12345")
 
 	assert.NoError(t, err)
@@ -169,7 +159,7 @@ func TestClient_GetOrderStatus_TooManyRequests(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := New(server.URL)
+	client := New(server.URL, httpclient.New())
 	resp, err := client.GetOrderStatus(context.Background(), "12345")
 
 	assert.NoError(t, err)

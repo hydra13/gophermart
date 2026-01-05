@@ -18,6 +18,7 @@ import (
 	glog "go.finelli.dev/gooseloggers/zerolog"
 
 	accrualClient "github.com/hydra13/gophermart/internal/clients/accrual"
+	httpClient "github.com/hydra13/gophermart/internal/clients/httpclient"
 	"github.com/hydra13/gophermart/internal/config"
 	addOrderHandler "github.com/hydra13/gophermart/internal/handlers/add_order"
 	balanceHandler "github.com/hydra13/gophermart/internal/handlers/balance"
@@ -65,7 +66,8 @@ func main() {
 	}
 
 	// Clients
-	accrual := accrualClient.New(conf.AccrualSystemAddress)
+	httpClientInstance := httpClient.New()
+	accrual := accrualClient.New(conf.AccrualSystemAddress, httpClientInstance)
 
 	// Services
 	auth := authService.New()
