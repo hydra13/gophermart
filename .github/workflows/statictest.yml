@@ -30,5 +30,7 @@ jobs:
           mv $GITHUB_WORKSPACE/.tools/statictest /usr/local/bin/statictest
 
       - name: Run statictest
+        env:
+          GOFLAGS: -buildvcs=false
         run: |
           go vet -vettool=$(which statictest) $(go list ./... | grep -v "/mocks")
